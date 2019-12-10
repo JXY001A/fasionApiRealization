@@ -1,0 +1,45 @@
+<!--
+ * @description: 
+ * @author: JXY
+ * @Date: 2019-12-10 22:01:50
+ * @Email: JXY001a@aliyun.com
+ * @LastEditTime: 2019-12-10 22:32:41
+ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <input type="text" name="" id="input">
+    <span id="span"></span>
+    <button onclick="btnClick()">查看数据</button>
+    <script>
+        const input = document.getElementById('input');
+        const span = document.getElementById('span');
+        const data1 = {text:"default"};
+        
+        const handle = {
+            set:(target,key,value)=>{
+                target[key] = value;
+                input.value  = value;
+                span.innerHTML = value;
+                return value;
+            }
+        };
+
+        const proxy = new Proxy(data1, handle);
+
+        input.addEventListener('keyup',(e)=>{
+            proxy.text = e.target.value;
+        });
+
+        function btnClick() {
+            console.log(data1);
+        }
+    </script>
+</body>
+</html>
