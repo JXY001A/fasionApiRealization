@@ -3,7 +3,7 @@
  * @author: JXY
  * @Date: 2019-12-10 22:01:50
  * @Email: JXY001a@aliyun.com
- * @LastEditTime: 2019-12-10 22:32:41
+ * @LastEditTime: 2019-12-11 18:06:51
  -->
 <!DOCTYPE html>
 <html lang="en">
@@ -18,28 +18,23 @@
     <span id="span"></span>
     <button onclick="btnClick()">查看数据</button>
     <script>
-        const input = document.getElementById('input');
-        const span = document.getElementById('span');
-        const data1 = {text:"default"};
-        
-        const handle = {
-            set:(target,key,value)=>{
-                target[key] = value;
-                input.value  = value;
-                span.innerHTML = value;
-                return value;
+       function throttle(fn,delay) {
+            let last = 0;
+            return function() {
+                const now = + new Date;
+                const context = this,
+                      args = arguments;  
+                if(now-last>delay) {
+                    fn.apply(context,[].slice.call(args));
+                    last = now;
+                }
+                
             }
-        };
-
-        const proxy = new Proxy(data1, handle);
-
-        input.addEventListener('keyup',(e)=>{
-            proxy.text = e.target.value;
-        });
-
-        function btnClick() {
-            console.log(data1);
         }
+
+        const btnClick = throttle(function() {
+            console.log(+ new Date);
+        },500);
     </script>
 </body>
 </html>
