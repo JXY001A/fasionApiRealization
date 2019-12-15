@@ -3,7 +3,7 @@
  * @author: JXY
  * @Date: 2019-12-11 17:54:22
  * @Email: JXY001a@aliyun.com
- * @LastEditTime: 2019-12-11 18:08:22
+ * @LastEditTime: 2019-12-15 22:43:43
  */
 
 function throttle(fn,interval) {
@@ -15,7 +15,6 @@ function throttle(fn,interval) {
         if(now-last>=interval) {
             fn.apply(context,[].slice.call(args));
             last = now;
-        }
-        
+        }  
     }
 }

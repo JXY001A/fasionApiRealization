@@ -3,7 +3,7 @@
  * @author: JXY
  * @Date: 2019-12-10 22:01:50
  * @Email: JXY001a@aliyun.com
- * @LastEditTime: 2019-12-11 18:06:51
+ * @LastEditTime: 2019-12-11 18:42:02
  -->
 <!DOCTYPE html>
 <html lang="en">
@@ -18,23 +18,34 @@
     <span id="span"></span>
     <button onclick="btnClick()">查看数据</button>
     <script>
-       function throttle(fn,delay) {
-            let last = 0;
-            return function() {
-                const now = + new Date;
-                const context = this,
-                      args = arguments;  
-                if(now-last>delay) {
-                    fn.apply(context,[].slice.call(args));
+
+    function debouncePro(fn,delay) {
+        let timer  = null,
+            last = 0;
+        return function() {
+            const args = arguments,
+                context = this,
+                now = + new Date;
+
+            if(now-last<delay) {
+                clearTimeout(timer);
+                timer = setTimeout(()=>{
+                    fn.apply(context,Array.prototype.slice.call(args));
                     last = now;
-                }
-                
+                    timer = null;
+                },delay);
+            }else{
+                fn.apply(context,Array.prototype.slice.call(args));
+                clearTimeout(timer);
+                last = now;
+                timer = null;
             }
         }
+    }
 
-        const btnClick = throttle(function() {
-            console.log(+ new Date);
-        },500);
+    const btnClick = debouncePro(function() {
+        console.log(+ new Date);
+    },1000);
     </script>
 </body>
 </html>
