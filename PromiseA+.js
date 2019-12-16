@@ -83,7 +83,6 @@ function resolvePromise(promise2,x,resolve,reject) {
 }
 
 Promise.prototype.then = function(onFulFilled,onRejected) {
-    
     onFulFilled = typeof onFulFilled === 'function'? onFulFilled : ()=>{};
     onRejected = typeof onRejected === 'function'? onRejected : ()=>{};
     let newPromise,
@@ -136,3 +135,61 @@ Promise.prototype.then = function(onFulFilled,onRejected) {
         });
     }
 }
+
+
+Promise.prototype.catch = function(reject) {
+    return this.then(null,reject);
+}
+
+Promise.all = function(promises) {
+    return new Promise((resolve,reject)=>{
+        const done = gen(promises.length,resolve);
+        promises.forEach((promise,index)=>{
+            promise.then((value)=>{
+                done(value,index);
+            },reject)
+        });
+    });
+}
+function gen(length,resolve) {
+    let count = 0,
+        values = [];
+    return function(value,index) {
+        values[index] = value;
+        if(++count === length) {
+            resolve(values);
+        }
+    }
+}
+
+Promise.race = function(promises) {
+    return new Promise((resolve,reject)=>{
+        promises.forEach((promise,index)=>{
+            promise.then(resolve,reject);
+        });
+    });
+}
+
+Promise.resolve = function(value) {
+    return new Promise((resolve,reject)=>{
+        resolve(value);
+    });
+}
+
+Promise.reject = function(reason) {
+    return new Promise((resolve,reject)=>{
+        reject(reason);
+    });
+}
+
+
+// 测试
+let promise1 = new Promise((resolve,reject)=>{
+    setTimeout(()=>{
+        resolve('1秒钟以后');
+    },1000);
+});
+
+promise1.then((value)=>{
+    console.log('value :', value);
+},(reason)=>{});
