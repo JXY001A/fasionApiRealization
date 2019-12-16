@@ -168,6 +168,7 @@ Promise.all =  function(promises) {
         });
     });
 }
+
 function gen(length,resolve) {
     let count = 0;
     let values = [];
@@ -194,7 +195,7 @@ Promise.prototype.catch = function(onRejected) {
 
 Promise.resolve = function(value) {
     return new Promise((resolve,reject)=>{
-        reject(reason);
+        resolve(value);
     });
 }
 
