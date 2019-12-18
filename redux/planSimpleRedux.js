@@ -1,83 +1,57 @@
 /*
  * @description: 
  * @author: JXY
- * @Date: 2019-09-19 14:51:17
+ * @Date: 2019-09-19 16:50:00
  * @Email: JXY001a@aliyun.com
- * @LastEditTime: 2019-09-23 16:00:13
+ * @LastEditTime: 2019-12-16 18:24:27
  */
-
-
-const createStore = function (plan,initState) {
+function createStore (plan,initState) {
     let state = initState;
-    let listeners = [];
+    let listens = [];
 
-    /* 订阅 */
-    function subscribe(listener) {
-        listeners.push(listener);
+    const  getState = ()=>state;
+    const  changeState = (action)=>{
+        state = plan(state,action);
+        listens.forEach((listen)=>listen());
     }
-    /* 通知 */
-    function changeState(action) {
-        state = plan(state, action);
-        for (let i = 0; i < listeners.length; i += 1) {
-            const listener = listeners[i];
-            listener();
-        }
-    }
-
-    /* 获取state */
-    function getState() {
-        return state;
+    const subscribe = (listen)=>{
+        listens.push(listen);
     }
 
     return {
-        subscribe,
-        changeState,
         getState,
+        changeState,
+        subscribe,
     }
 }
 
-
-
-let initState = {
-    count: 0
-}
-
-/*注意：action = {type:'',other:''}, action 必须有一个 type 属性*/
-const plan = function(state,action) {
+function plan(state,action) {
     switch(action.type) {
-        case 'INCREMENT':{
+        case "INCREMENT" :
             return {
                 ...state,
                 count:state.count + 1,
-            }
-        }
-        case 'INCREMENT':{
-           return {
+            };
+        case "DECREMENT":
+            return {
                 ...state,
                 count:state.count - 1,
-           }
-        }
-        default :
+            };
+        default: 
             return state;
     }
 }
 
-/*plan函数*/
-let store = createStore(plan, initState);
+let initState = {count:0};
 
-store.subscribe(() => {
+const store = createStore(plan,initState);
+store.subscribe(()=>{
     let state = store.getState();
-    console.log(state.count);
+    console.log(state.count,"state.count change");
 });
-/*自增*/
-store.changeState({
-    type: 'INCREMENT'
-});
-/*自减*/
-store.changeState({
-    type: 'DECREMENT'
-});
-/*我想随便改 计划外的修改是无效的！*/
-store.changeState({
-    count: 'abc'
-});
+
+store.changeState({type:"INCREMENT"});
+store.changeState({type:"DECREMENT"});
+
+store.changeState({count:'abcd'});
+
