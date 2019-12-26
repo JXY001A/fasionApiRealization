@@ -3,7 +3,7 @@
  * @author: JXY
  * @Date: 2019-12-26 15:33:12
  * @Email: JXY001a@aliyun.com
- * @LastEditTime : 2019-12-26 21:38:05
+ * @LastEditTime : 2019-12-26 22:59:07
  */
 const Utils = {
     isObject:(obj)=> Object.prototype.toString.call(obj) === "[object Object]",
@@ -22,6 +22,14 @@ const Utils = {
             }
         }
         return data;
+    },
+    isPrimitive: val => Object(val) !== val,
+    getInitData:function(data){
+        if(this.isArray(data)) {
+            return [];
+        }else {
+            return {};
+        }
     }
 };
 
@@ -95,4 +103,60 @@ c.b = b;
 cloneJson(b); //  Uncaught TypeError: Converting circular structure to JSON 
 
 
+/* 破解爆栈大杀器，loop */
+var d = {
+    a1: 1,
+    a2: {
+        b1: 1,
+        b2: {
+            c1: 1
+        },
+        b3:{
+            c2:1,
+        }
+
+    },
+    a3:{
+        b4:{},
+        b5:{}
+    }
+}
+
+const cloneLoop = (source)=>{
+    // 基础数据类型直接返回
+    if(Utils.isPrimitive(source)) return source;
+
+    let root = Utils.getInitData(source);
+
+    const stack = [{key:undefined,data:source,parent:root}];
+
+    while(stack.length) {
+        let node = stack.pop();
+        let key = node.key,
+            data = node.data,
+            parent = node.parent;
+        
+            let res;
+        if(key === undefined) {
+            res = parent;
+        }else{
+            /* 整个代码中最为关键的一行代码，起到呈上起下的作用，数据连接的作用 */
+            res = parent[key] = {};
+        }
+
+        for(let k in data) {
+            if(typeof data[k] !== 'object') {
+                res[k] = data[k];
+            } else{
+                stack.push({
+                    key:k,
+                    data:data[k],
+                    parent:res
+                });
+            }
+        } 
+    }
+
+    return root;
+}
 
