@@ -3,7 +3,7 @@
  * @author: JXY
  * @Date: 2019-12-26 15:33:12
  * @Email: JXY001a@aliyun.com
- * @LastEditTime : 2019-12-26 17:11:16
+ * @LastEditTime : 2019-12-26 21:38:05
  */
 const Utils = {
     isObject:(obj)=> Object.prototype.toString.call(obj) === "[object Object]",
@@ -47,6 +47,7 @@ const shallowClone = (source)=>{
     return target;   
 }
 
+/* 弊端： 可能爆栈，没有解决循环引用的问题 */
 const simpleDeepClone = (source)=>{
     if(typeof source !== 'object' || source === null ) return source;
     let target = null;
@@ -65,3 +66,33 @@ const simpleDeepClone = (source)=>{
         return target;
     }
 }
+
+
+/* 总结：
+    JSON 形式的拷贝，在深层的数据情况下依然有爆栈的可能性。它最终还是使用执行栈来处理。
+    同时它还做了循环引用检测
+*/
+const cloneJson = (source)=> {
+    return JSON.parse(JSON.stringify(source));
+}
+// 弊端： Symbol 类型 , undefined ,函数都是不支持拷贝的 
+let a = {
+	c:null,
+	d:undefined,
+	e:Symbol('clone'),
+	f:()=>{},
+	g:'data'
+}
+const cloneA  = cloneJson(a); 
+// cloneA : {c: null, g: "data"}
+
+/* 循环引用测试 cloneJson */
+let b = {};
+let c = {};
+b.c = c;
+c.b = b;
+// 循环引用就会报出错误
+cloneJson(b); //  Uncaught TypeError: Converting circular structure to JSON 
+
+
+
