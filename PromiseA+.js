@@ -1,26 +1,25 @@
-let PENDING = 'pending',
-    FULFILLED = 'fulfilled',
-    REJECTED = 'rejected';
+const PENDING = 'pending';
+const FULFILLED = 'onFulFilled';
+const REJECT = 'rejected';
 
 function Promise(excutor) {
     const that = this;
-    that.status= PENDING,
-    that.value = null,
-    that.reason= null;
-    
-    that.FulFilledCallBack = [];
-    that.RejectedCallBack = [];
+    that.value = undefined;
+    that.reason = undefined;
+    that.onFulFilledCallback = [];
+    that.onRejectCallback = [];
+    that.status = PENDING;
 
     function resolve(value) {
-        if(value instanceof Promise ) {
-            return value.then(resolve,reject);
+        if(value instanceof Promise) {
+            value.then(resolve,reject);
         }
 
         setTimeout(()=>{
             if(that.status === PENDING) {
-                that.status = FULFILLED;
                 that.value = value;
-                that.FulFilledCallBack.forEach(callback => callback(that.value));
+                that.status = FULFILLED;
+                that.onFulFilledCallback.forEach(cb => cb(that.value));
             }
         },0);
     }
@@ -28,9 +27,9 @@ function Promise(excutor) {
     function reject(reason) {
         setTimeout(()=>{
             if(that.status === PENDING) {
-                that.status = REJECTED;
+                that.status = REJECT;
                 that.reason = reason;
-                that.RejectedCallBack.forEach(callback => callback(that.reason));
+                that.onRejectCallback.forEach((cb)=>cb(that.reason));
             }
         },0);
     }
@@ -38,60 +37,23 @@ function Promise(excutor) {
     try {
         excutor(resolve,reject);
     } catch (error) {
-        reject(error)
+        reject(error);
     }
 }
 
-function resolvePromise(promise2,x,resolve,reject) {
-    if(promis2 === x) {
-        reject(new TypeError('循环引用'));
-    }
-
-    let called = false;
-    if(x instanceof Promise) {
-        if(x.status === PENDING) {
-            x.then((y)=>{
-                resolvePromise(promise2,y,resolve,reject);
-            },(reason)=>{
-                reject(reason);
-            });
-        }else{
-            x.then(resolve,reject);
-        }
-    }else if(x!==null && (typeof x === 'object' || typeof x === 'function')){
-        const then = x.then;
-        if(typeof then === 'function') {
-            try {
-                then.call(x,(y)=>{
-                    if(called) return;
-                    called=true;
-                    resolvePromise(promise2,y,resolve,reject);
-                },(reason)=>{
-                    if(called) return;
-                    called=true;
-                    reject(reason);
-                });
-            } catch (error) {
-                if(called) return;
-                called=true;
-                reject(error);
-            }
-        }
-    }else{
-        resolve(x);
-    }
-}
-
-Promise.prototype.then = function(onFulFilled,onRejected) {
-    onFulFilled = typeof onFulFilled === 'function'? onFulFilled : ()=>{};
-    onRejected = typeof onRejected === 'function'? onRejected : ()=>{};
-    let newPromise,
-        that = this;
+Promise.prototype.then = (onFullFilled,onRejected)=>{
+    const that = this;
+    let newPromise;
     if(that.status === FULFILLED) {
-        return  newPromise = new Promise((resolve,reject)=>{
+        // 问：既然已经是 FULFILLED 的状态了，为何还要异步执行？
+        // 答：调用 promise.then(()=>{},{}); 都会返回一个新的 promise，这个新的 promise 
+        // 也可能继续调用 then 方法，并注册新的 onFullFilled 和 onRejected，如果直接同步执行
+        // 那么 then 方法注册函数的过成就在执行之后，这样就会导致回调队列断裂,后续注册的方法永远不会被调用。
+        // 使得 promise 失去应有的威力。
+        return newPromise = new Promise((resolve,reject)=>{
             setTimeout(()=>{
                 try {
-                    let x = onFulFilled(that.value);
+                    let  x = onFullFilled(that.value);
                     resolvePromise(newPromise,x,resolve,reject);
                 } catch (error) {
                     reject(error);
@@ -100,11 +62,11 @@ Promise.prototype.then = function(onFulFilled,onRejected) {
         });
     }
 
-    if(that.status === REJECTED) {
-        return  newPromise = new Promise((resolve,reject)=>{
+    if(that.status === REJECT) {
+        return newPromise = new Promise((resolve,reject)=>{
             setTimeout(()=>{
                 try {
-                    let x = onRejected(that.reason);
+                    const x = onRejected(that.reason);
                     resolvePromise(newPromise,x,resolve,reject);
                 } catch (error) {
                     reject(error);
@@ -114,17 +76,16 @@ Promise.prototype.then = function(onFulFilled,onRejected) {
     }
 
     if(that.status === PENDING) {
-        return newPromise = new Promise((resolve,reject) => {
-            that.FulFilledCallBack.push((value)=>{
+        return newPromise = new Promise((resolve,reject)=>{
+            that.onFulFilledCallback.push((value)=>{
                 try {
-                    let x = onFulFilled(value);
+                    let x = onFullFilled(value);
                     resolvePromise(newPromise,x,resolve,reject);
                 } catch (error) {
                     reject(error);
                 }
             });
-
-            that.RejectedCallBack.push((reason)=>{
+            that.onRejectCallback.push((reason)=>{
                 try {
                     let x = onRejected(reason);
                     resolvePromise(newPromise,x,resolve,reject);
@@ -136,60 +97,104 @@ Promise.prototype.then = function(onFulFilled,onRejected) {
     }
 }
 
-
-Promise.prototype.catch = function(reject) {
-    return this.then(null,reject);
+Promise.prototype.catch = (reject)=>{
+    this.then(null,reject);
 }
 
-Promise.all = function(promises) {
-    return new Promise((resolve,reject)=>{
-        const done = gen(promises.length,resolve);
-        promises.forEach((promise,index)=>{
-            promise.then((value)=>{
-                done(value,index);
-            },reject)
-        });
-    });
-}
-function gen(length,resolve) {
-    let count = 0,
-        values = [];
-    return function(value,index) {
-        values[index] = value;
-        if(++count === length) {
-            resolve(values);
-        }
-    }
-}
-
-Promise.race = function(promises) {
-    return new Promise((resolve,reject)=>{
-        promises.forEach((promise,index)=>{
-            promise.then(resolve,reject);
-        });
-    });
-}
-
-Promise.resolve = function(value) {
+Promise.resolve = (value)=>{
     return new Promise((resolve,reject)=>{
         resolve(value);
     });
 }
 
-Promise.reject = function(reason) {
+
+
+Promise.reject = (reason)=>{
     return new Promise((resolve,reject)=>{
         reject(reason);
     });
 }
 
 
-// 测试
-let promise1 = new Promise((resolve,reject)=>{
-    setTimeout(()=>{
-        resolve('1秒钟以后');
-    },1000);
-});
+function resolvePromise(promise,x,resolve,reject) {
+    if(promise === x) {
+        return reject(new TypeError('循环引用错误！'));
+    }
+    // 使用 called 原因是 thenable 对象没有状态管理机制，故作补充  
+    let called = false;
+    if(x instanceof Promise) {
+        if(x.status === PENDING) {
+            x.then((value)=>{
+                resolvePromise(promise,value,resolve,reject);
+            },(reason)=>{
+                reject(reason);
+            });
+        }else{
+            // 这种情况就是 then 方法中  FULFILLED ，REJECT 对应的状态
+            x.then(resolve,reject);
+        }
+    }else if(x!== null && (typeof x === 'object' || typeof x === 'function')) {
+        try {
+            const then = x.then;
+            if(typeof then === 'function') {
+                then.call(x,(value)=>{
+                    if(called) return;
+                    called = true;
+                    resolvePromise(promise,value,resolve,reject);
+                },(reason)=>{
+                    if(called) return;
+                    called = true;
+                    reject(reason);
+                });
+            }else{
+                resolve(x);
+            }
+        } catch (error) {
+            if(called) return;
+            called=true;
+            reject(error);
+        }
+    }else{
+        resolve(x);
+    }
+}
 
-promise1.then((value)=>{
-    console.log('value :', value);
-},(reason)=>{});
+Promise.all = (promises)=>{
+    if(Array.isArray(promises)) {
+        new Promise((resolve,reject)=>{
+            const done = gen(promises.length,resolve);
+            promises.forEach((promise,index)=>{
+                promise.then((value)=>{
+                    done(index,value);
+                },reject);
+            });
+        });
+    }
+}
+
+function gen(len,resolve) {
+    let result = [];
+    return function(index,value) {
+        result[index] = value;
+        if(result.length === len) {
+            resolve(result);
+        }
+    }
+}
+
+Promise.race = (promises)=>{
+    if(Array.isArray(promises)) {
+        return new Promise((resolve,reject)=>{
+            promises.forEach((promise)=>{
+                promise.then((value)=>{
+                    // 无需担心 resolve 被多次调用 ，因为新生成的 promise 自有其状态不可改变性质
+                    // 一旦 resolve 被调用一次，后续都会被拦击掉
+                    resolve(value);
+                },reject);
+            });
+        });
+    }
+}
+
+
+Promise.done = ()=>{}
